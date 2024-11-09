@@ -1,0 +1,12 @@
+{
+  "chapati": {
+    "name": "chapati",
+    "price": 1,
+    "quantity": 1
+  },
+  "ice cream'": {
+    "name": "ice cream'",
+    "price": 2,
+    "quantity": 2
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "ice cream'": {
+    "name": "ice cream'",
+    "price": 2,
+    "quantity": 2
+  },
+  "coco-cola": {
+    "name": "coco-cola",
+    "price": 3,
+    "quantity": 2
+  }
+}
