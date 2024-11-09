@@ -1,0 +1,1410 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.16.9/xlsx.full.min.js"></script>
+ <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
+
+    <title>Restaurant Management Interface</title>
+    <style>
+
+
+
+
+        /* Basic styling */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            background-color: #f5f5f5;
+        }
+        /* Title bar styling */
+        .title-bar {
+            background-color: #444;
+            color: white;
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .title-bar .app-title {
+            font-size: 18px;
+        }
+        .title-bar .menu-icons {
+            display: flex;
+            gap: 10px;
+        }
+        .menu-icons i {
+            font-size: 20px;
+            cursor: pointer;
+        }
+        .search-bar {
+            flex: 1;
+            margin: 0 20px;
+            position: relative;
+        }
+        .search-bar input {
+            width: 100%;
+            padding: 5px 10px;
+            font-size: 16px;
+            border-radius: 5px;
+            border: none;
+        }
+        .search-results {
+            position: absolute;
+            top: 35px;
+            left: 0;
+            right: 0;
+            background-color: white;
+            border: 1px solid #ccc;
+            z-index: 1000;
+            display: none;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .search-results div {
+            padding: 10px;
+            cursor: pointer;
+            background-color: #f0f0f0; /* Light grey background */
+            color: #444;
+        }
+        .search-results div:hover {
+            background-color: #d9534f; /* Highlight color on hover */
+            color: white;
+        }
+        .search-results div.highlighted {
+            background-color: #ffcc00; /* Yellow background for better visibility */
+            color: black;
+        }
+        /* Menu bar styling */
+        .menu-bar {
+            background-color: #e0e0e0;
+            padding: 10px 20px;
+            display: flex;
+            gap: 20px;
+            border-bottom: 1px solid #ccc;
+        }
+        .menu-bar .menu-item {
+            cursor: pointer;
+            padding: 5px 10px;
+            border-radius: 5px;
+        }
+        .menu-bar .menu-item.active {
+            background-color: #d9534f;
+            color: white;
+        }
+        /* Main layout */
+        .content {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+        .sidebar {
+            width: 200px;
+            background-color: #f8f9fa;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        .sidebar h2 {
+            font-size: 18px;
+            margin-top: 0;
+        }
+        .sidebar ul {
+            list-style: none;
+            padding: 0;
+        }
+        .sidebar li {
+            margin-bottom: 10px;
+            cursor: pointer;
+            padding: 5px;
+            border-radius: 5px;
+        }
+        .sidebar li:hover, .sidebar li.active {
+            background-color: #d9534f;
+            color: white;
+        }
+        .main-content {
+            flex: 1;
+            padding: 20px;
+            background-color: #fff;
+            overflow-y: auto;
+        }
+        .main-content .items-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+        }
+        .item {
+            border: 1px solid #ccc;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            background-color: #f9f9f9;
+            border-radius: 5px;
+        }
+        .item:hover {
+            background-color: #f0ad4e;
+        }
+        /* Order Summary */
+        .order-summary {
+            width: 300px;
+            background-color: #f7f7f7;
+            padding: 20px;
+            border-left: 1px solid #ccc;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            position: relative; /* Position relative for absolute children */
+        }
+        .order-summary h2 {
+            font-size: 18px;
+            margin-top: 0;
+        }
+        #order-items {
+            flex: 1; /* Grow to fill available space */
+            overflow-y: auto; /* Scrollable */
+        }
+        .order-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .order-item span {
+            flex: 1;
+        }
+        .quantity-controls {
+            display: flex;
+            align-items: center;
+        }
+        .quantity-controls button {
+            background-color: #d9534f;
+            color: white;
+            border: none;
+            cursor: pointer;
+            padding: 3px 8px;
+            border-radius: 3px;
+            margin: 0 5px;
+        }
+        .footer {
+            background-color: #444;
+            color: white;
+            padding: 10px;
+            text-align: center;
+            position: fixed;
+            bottom: 0;
+            width: 300px;
+        }
+
+        /* Styles for the Settle & Print Bill button */
+        .settle-print-btn {
+            background-color: red; /* Green color */
+            color: white;
+            border: none;
+            padding: 30px 10px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 20px;
+			margin-bottom: 30px;
+            width: 100%;
+			
+            border-radius: 10px;
+        }
+
+        .settle-print-btn:hover {
+            background-color:green; /* Darker green on hover */
+        }
+
+        .print-btn {
+            background-color: #d9534f; /* Red color */
+            color: white;
+            border: none;
+            padding: 5px 15px;
+            font-size: 16px;
+            cursor: pointer;
+            border-radius: 5px;
+            margin-left: auto; /* Pushes the button to the right end */
+        }
+
+        .print-btn:hover {
+            background-color: #c9302c; /* Darker red on hover */
+        }
+		
+		
+		#total-price {
+    border: 1px solid #ccc; /* Light grey border */
+    padding: 10px; /* Padding for spacing */
+    margin-top: 10px; /* Space above the total price */
+    background-color: #fff; /* White background for contrast */
+    border-radius: 5px; /* Rounded corners */
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Subtle shadow for depth */
+    transition: background-color 0.3s ease, transform 0.3s ease; /* Transition for background and transform */
+}
+
+/* Add hover effect */
+#total-price:hover {
+    background-color: #f0f0f0; /* Light grey background on hover */
+    transform: scale(1.02); /* Slightly enlarge on hover */
+}
+   /* Popup styling */
+        .popup {
+            display: none; /* Hidden by default */
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: white;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            z-index: 1001; /* Make sure it appears above other content */
+            animation: popup-animation 0.5s forwards, celebration-animation 0.5s forwards; /* Popup and celebration animation */
+        }
+        .popup-content {
+            padding: 20px;
+            text-align: center;
+        }
+        .popup h3 {
+            margin: 0;
+            color: #d9534f; /* Color for title */
+        }
+        .popup p {
+            margin: 10px 0 20px;
+        }
+        /* Button styling */
+        #close-popup {
+            background-color: #d9534f; /* Button color */
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        #close-popup:hover {
+            background-color: #c9302c; /* Darker shade on hover */
+        }
+        /* Popup animation keyframes */
+        @keyframes popup-animation {
+            from {
+                opacity: 0;
+                transform: translate(-50%, -60%);
+            }
+            to {
+                opacity: 1;
+                transform: translate(-50%, -50%);
+            }
+        }
+        /* Celebration animation keyframes */
+        @keyframes celebration-animation {
+            0% {
+                transform: translate(-50%, -50%) scale(1);
+            }
+            50% {
+                transform: translate(-50%, -50%) scale(1.1) rotate(5deg);
+            }
+            100% {
+                transform: translate(-50%, -50%) scale(1);
+            }
+        }
+		
+		 /* Print styles */
+        @media print {
+            body * {
+                visibility: hidden; /* Hide everything */
+            }
+            #order-summary, #order-summary * {
+                visibility: visible; /* Show only the order summary */
+            }
+            #order-summary {
+                position: absolute; /* Prevent layout issues */
+                left: 0;
+                top: 0;
+            }
+        }
+/* MessageBox container */
+        #messageBox {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #f44336; /* Red background for rejection */
+            color: white;
+            padding: 15px;
+            border-radius: 5px;
+            display: none;
+            font-size: 16px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            opacity: 0;
+            animation: slideUp 0.5s forwards;
+        }
+
+        /* Animation to slide up */
+        @keyframes slideUp {
+            0% {
+                opacity: 0;
+                transform: translateX(-50%) translateY(30px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateX(-50%) translateY(0);
+            }
+        }
+
+        /* Styles for the "close" button */
+        .close-btn {
+            color: white;
+            font-weight: bold;
+            margin-left: 10px;
+            cursor: pointer;
+            font-size: 18px;
+        }
+
+        .close-btn:hover {
+            opacity: 0.7;
+        }
+ /* The container will be hidden by default */
+        #waitingContainer {
+            display: none; /* Hidden by default */
+            justify-content: center;
+            align-items: center;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+            animation: fadeIn 0.5s ease-out; /* Animation for the container */
+        }
+
+        /* The actual message inside the container */
+        #waitingMessage {
+            display: flex;
+            align-items: center; /* Center text and loader vertically */
+            background: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: bold;
+            opacity: 0;  /* Start invisible */
+            animation: slideIn 0.5s ease-out forwards, fadeInMessage 1s ease-out forwards;
+        }
+
+        /* The loading spinner */
+        .spinner {
+            border: 4px solid #f3f3f3; /* Light gray background */
+            border-top: 4px solid #2e8b57; /* Green spinner color */
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite; /* Spinner animation */
+            margin-right: 15px; /* Space between spinner and message */
+        }
+
+        /* Fade-in animation for the container */
+        @keyframes fadeIn {
+            0% { opacity: 0; }
+            100% { opacity: 1; }
+        }
+
+        /* Slide-in animation for the message */
+        @keyframes slideIn {
+            0% {
+                transform: translateY(-50px); /* Start from above */
+            }
+            100% {
+                transform: translateY(0); /* End in the correct position */
+            }
+        }
+
+        /* Fade-in animation for the message itself */
+        @keyframes fadeInMessage {
+            0% {
+                opacity: 0;
+            }
+            100% {
+                opacity: 1;
+            }
+        }
+
+        /* Spinner animation */
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+
+
+        /* Popup styles */
+        #historyPopup {
+            display: none; /* Hidden by default */
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        #popupContent {
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            width: 80%;
+            max-width: 600px;
+            overflow: auto;
+        }
+        #orderHistoryGrid {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        #orderHistoryGrid th, #orderHistoryGrid td {
+            padding: 10px;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+        /* Basic styling for the button */
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+    </style>
+</head>
+
+
+<body>
+ <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+
+    <!-- Title Bar -->
+    <div class="title-bar">
+        <div class="app-title">Restaurant Management Software</div>
+        <div class="search-bar">
+            <input type="text" placeholder="Search items..." id="search-input">
+            <div class="search-results" id="search-results"></div>
+        </div>
+       
+    </div>
+
+    <!-- Menu Bar -->
+    <div class="menu-bar">
+        <div class="menu-item active">Dine In</div>
+        <div onclick="showorderhistory()" class="menu-item">Order_History</div>
+        <div class="menu-item">Pick Up</div>
+        <button class="print-btn" onclick="closeWindow()">Back</button>
+    </div>
+
+    <!-- Main Content Layout -->
+    <div class="content">
+        <div class="sidebar">
+            <h2>Categories</h2>
+            <ul>
+                
+            </ul>
+        </div>
+
+        <div class="main-content">
+            <h2>Items</h2>
+            <div class="items-grid">
+               
+            </div>
+        </div>
+
+        <!-- Order Summary -->
+        <div class="order-summary" id ="order-summary">
+            <h2>Order Summary</h2>
+            <div id="order-items"></div>
+            <div id="total-price">Total: ₹0.00</div>
+            <button class="settle-print-btn"  onclick="printBill()">Place order</button>
+        </div>
+    </div>
+
+ <!-- Order History Popup -->
+<div id="historyPopup">
+    <div id="popupContent">
+        <h2>Order History</h2>
+        <table id="orderHistoryGrid">
+            <thead>
+                <tr>
+                    <th>Order ID</th>
+                    <th>Product</th>
+                    <th>Quantity</th>
+                    <th>Total</th>
+                </tr>
+            </thead>
+            <tbody id="orderHistoryBody">
+                <!-- Order history will be inserted here -->
+            </tbody>
+        </table>
+        <button id="closePopupBtn">Close</button>
+    </div>
+</div>
+
+<!-- Congratulations Popup -->
+    <div id="congratulations-popup" class="popup">
+        <div class="popup-content">
+            <h3>Congratulations!</h3>
+            <p id="popup-message">You did an awesome job!</p>
+            <button id="close-popup">Close</button>
+        </div>
+    </div>
+
+    <!-- The container that holds the "waiting for confirmation" message -->
+    <div id="waitingContainer">
+        <div id="waitingMessage">
+            <!-- The loading spinner -->
+            <div class="spinner"></div>
+            Waiting for confirmation...
+        </div>
+    </div>
+
+    <script>
+
+         function showWaitingMessage() {
+            const waitingContainer = document.getElementById('waitingContainer');
+            const waitingMessage = document.getElementById('waitingMessage');
+
+            // Make the container visible first
+            waitingContainer.style.display = 'flex';
+
+            // Reset the animation on the message
+            waitingMessage.style.animation = 'none'; // Reset animations
+            waitingMessage.offsetHeight; // Trigger a reflow (to reset the animation)
+            waitingMessage.style.animation = 'slideIn 0.5s ease-out forwards, fadeInMessage 1s ease-out forwards'; // Restart the animation
+
+            // Reset container animation to fade in
+            waitingContainer.style.animation = 'fadeIn 0.5s ease-out forwards';        }
+
+        // Function to hide the waiting message
+        function hideWaitingMessage() {
+            const waitingContainer = document.getElementById('waitingContainer');
+            waitingContainer.style.display = 'none';  // Set display to none to hide it
+        }
+
+
+
+	  function showMessageBox(message) {
+            const messageBox = document.getElementById('messageBox');
+            const messageBoxMessage = document.getElementById('messageBox-message');
+            messageBoxMessage.textContent = message;  // Set the dynamic message
+            messageBox.style.display = 'block';  // Make the MessageBox visible
+            setTimeout(closeMessageBox, 5000); // Automatically close after 5 seconds
+        }
+
+        // Function to close the MessageBox
+        function closeMessageBox() {
+            const messageBox = document.getElementById('messageBox');
+            messageBox.style.display = 'none';
+        }
+
+
+
+	 function showorderhistory(){
+
+	 const currentTable =  getTableName();
+     const savedOrder = JSON.parse(localStorage.getItem(currentTable));
+
+	 console.log("order history",savedOrder)
+
+	  const historyPopup = document.getElementById('historyPopup');
+
+	   // Show the history popup
+        historyPopup.style.display = 'flex';
+
+
+	 // Get order history from localStorage
+        const orders = JSON.parse(localStorage.getItem(currentTable)) || [];
+
+         const orderHistoryBody = document.getElementById('orderHistoryBody');
+
+        // Clear the current table body
+        orderHistoryBody.innerHTML = '';
+
+         const parsedContent = JSON.parse(localStorage.getItem(currentTable));
+         const totals = {};
+
+    for (const itemKey in parsedContent) {
+        if (parsedContent.hasOwnProperty(itemKey)) {
+            const itemData = parsedContent[itemKey];
+            if (!totals[itemData.name]) {
+                totals[itemData.name] = { totalQuantity: 0, totalPrice: 0 };
+            }
+            totals[itemData.name].totalQuantity += itemData.quantity;
+            totals[itemData.name].totalPrice += itemData.price * itemData.quantity;
+        }
+    }
+
+    const itemTable = document.createElement('table');
+    const itemBody = document.createElement('tbody');
+    itemTable.appendChild(itemBody);
+
+    for (const itemName in totals) {
+        if (totals.hasOwnProperty(itemName)) {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>1</td>
+                <td>${itemName}</td>
+                <td>${totals[itemName].totalQuantity}</td>
+                <td>${totals[itemName].totalPrice}</td>
+
+
+            `;
+            orderHistoryBody.appendChild(row);
+        }
+    }
+
+    //orderHistoryBody.appendChild(itemTable);
+
+
+
+
+	 }
+
+
+	 const closePopupBtn = document.getElementById('closePopupBtn');
+	  // Close the popup
+    closePopupBtn.addEventListener('click', () => {
+        historyPopup.style.display = 'none';
+    });
+
+
+	
+	
+	function closeWindow() {
+            window.close();
+        }
+	
+	
+        const items = document.querySelectorAll('.item');
+        const orderItems = document.getElementById('order-items');
+        const totalPriceEl = document.getElementById('total-price');
+        const categoryLinks = document.querySelectorAll('.sidebar li');
+        const searchInput = document.getElementById('search-input');
+        const searchResults = document.getElementById('search-results');
+        let totalAmount = 0;
+        const orderList = {};
+
+function getTableName() {
+			
+			const urlParams = new URLSearchParams(window.location.search);
+			return urlParams.get('table');
+			
+		}
+	    
+	const currentTable =  getTableName();
+        //const currentTable = localStorage.getItem('currentTable');
+
+	    console.log("current table to load order",currentTable)
+		
+		
+		
+function loadOrder() {
+    const savedOrder = JSON.parse(localStorage.getItem(currentTable));
+    if (savedOrder) {
+        // Load items for the current table
+        for (const itemName in savedOrder) {
+            const itemDetails = savedOrder[itemName];
+            for (let i = 0; i < itemDetails.quantity; i++) {
+                addItemToOrder(itemDetails.name, itemDetails.price);
+            }
+        }
+    }
+}
+
+
+
+
+function saveOrder() {
+
+
+
+
+
+
+
+    // localStorage.setItem(currentTable, JSON.stringify(orderList));
+	 console.log("inside save order",currentTable,orderList)
+
+
+
+
+
+
+
+
+
+	}
+
+
+        // Call loadOrder on page load
+        loadOrder();
+
+        items.forEach(item => {
+            item.addEventListener('click', () => {
+                const itemName = item.getAttribute('data-name');
+                const itemPrice = parseFloat(item.getAttribute('data-price'));
+
+                // Add item to the order
+                addItemToOrder(itemName, itemPrice);
+            });
+        });
+
+        function addItemToOrder(itemName, itemPrice) {
+            if (!orderList[itemName]) {
+                orderList[itemName] = { name: itemName, price: itemPrice, quantity: 1 };
+            } else {
+                orderList[itemName].quantity += 1;
+            }
+            totalAmount += itemPrice;
+            updateOrderSummary();
+            updateTotalPrice();
+            saveOrder();  // Save order to localStorage
+        }
+		
+		
+		 // Refresh the page every 1 second
+
+
+        function updateOrderSummary() {
+            orderItems.innerHTML = '';
+            for (const [itemName, itemDetails] of Object.entries(orderList)) {
+                orderItems.innerHTML += `
+                    <div class="order-item">
+                        <span>${itemDetails.name}</span>
+                        <div class="quantity-controls">
+                            <button onclick="decreaseQuantity('${itemName}')">-</button>
+                            <span>${itemDetails.quantity}</span>
+                            <button onclick="increaseQuantity('${itemName}')">+</button>
+                        </div>
+                        <span>₹${(itemDetails.price * itemDetails.quantity).toFixed(2)}</span>
+                    </div>
+                `;
+            }
+        }
+
+        function increaseQuantity(itemName) {
+            orderList[itemName].quantity += 1;
+            totalAmount += orderList[itemName].price;
+            updateOrderSummary();
+            updateTotalPrice();
+            saveOrder();  // Save order to localStorage
+        }
+
+        function decreaseQuantity(itemName) {
+            if (orderList[itemName].quantity > 1) {
+                orderList[itemName].quantity -= 1;
+                totalAmount -= orderList[itemName].price;
+            } else {
+                totalAmount -= orderList[itemName].price;
+                delete orderList[itemName];
+            }
+            updateOrderSummary();
+            updateTotalPrice();
+            saveOrder();  // Save order to localStorage
+        }
+
+        function updateTotalPrice() {
+            totalPriceEl.innerText = `Total: ₹${totalAmount.toFixed(2)}`;
+        }
+
+        
+
+        // Filtering items based on category
+        categoryLinks.forEach(link => {
+            link.addEventListener('click', () => {
+                const category = link.getAttribute('data-category');
+                categoryLinks.forEach(l => l.classList.remove('active'));
+                link.classList.add('active');
+                items.forEach(item => {
+                    if (category === 'all' || item.getAttribute('data-category') === category) {
+                        item.style.display = 'block';
+                    } else {
+                        item.style.display = 'none';
+                    }
+                });
+            });
+        });
+
+        // Search functionality
+        searchInput.addEventListener('input', () => {
+            const searchTerm = searchInput.value.toLowerCase();
+            if (searchTerm) {
+                searchResults.style.display = 'block';
+                searchResults.innerHTML = '';
+                items.forEach(item => {
+                    const itemName = item.getAttribute('data-name').toLowerCase();
+                    if (itemName.includes(searchTerm)) {
+                        const itemDiv = document.createElement('div');
+                        itemDiv.innerText = item.getAttribute('data-name');
+                        itemDiv.onclick = () => {
+                            addItemToOrder(item.getAttribute('data-name'), parseFloat(item.getAttribute('data-price')));
+                            searchResults.style.display = 'none';
+                            searchInput.value = '';
+                        };
+                        searchResults.appendChild(itemDiv);
+                    }
+                });
+            } else {
+                searchResults.style.display = 'none';
+            }
+        });
+
+
+			// Function to show the congratulatory popup
+function showCongratulations(message) {
+    const popup = document.getElementById('congratulations-popup');
+    popup.style.display = 'block';
+
+    document.getElementById('popup-message').textContent = message;
+
+
+}
+
+
+
+// Event listener to close the popup
+document.getElementById('close-popup').addEventListener('click', () => {
+    const popup = document.getElementById('congratulations-popup');
+    popup.style.display = 'none';
+});
+
+// Hide the popup when clicking outside of it
+window.onclick = function(event) {
+    const popup = document.getElementById('congratulations-popup');
+    if (event.target === popup) {
+        popup.style.display = 'none';
+    }
+};
+
+
+
+
+
+
+        // Hide search results when clicking outside
+        document.addEventListener('click', (event) => {
+            if (!searchInput.contains(event.target) && !searchResults.contains(event.target)) {
+                searchResults.style.display = 'none';
+            }
+        });
+
+	    
+
+
+const socket = io('http://127.0.0.1:5000', { transports: ['websocket'] });
+socket.on('connect', () => {
+    console.log("Connected to SocketIO server."); // Debug message
+});
+
+
+socket.on('order_accept', (data) => {
+    hideWaitingMessage();
+    console.log("order accepted for table no :", data.filename);  // Debug message
+    showCongratulations("Your order has been confirmed by Restaurant!!!!");
+
+
+
+
+});
+
+socket.on('order_reject', (data) => {
+
+    hideWaitingMessage();
+    console.log("order rejceted for table no :", data.filename);  // Debug message
+    showCongratulations("oops!!! your order has been rejected !!!!");
+
+
+
+
+
+});
+
+
+function printBill()
+{
+//var amount = 60000;  // Amount in paise (₹500.00 = 50000 paise)
+
+            var totalPriceText = document.getElementById('total-price').textContent;
+
+            // Extract the number part from the string
+            var total = parseFloat(totalPriceText.replace('Total: ₹', '').trim());
+
+            // Log the total price to the console (you can use it in your logic)
+            console.log("Total Price:", total*100);  // Should log: 500.00
+
+
+            var amount =  total*100;
+
+
+
+// Fetch the order ID from your Flask backend
+            fetch('/create-order', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                 body: JSON.stringify({ amount: amount })  // Send the amount as JSON
+            })
+            .then(response => response.json())
+            .then(data => {
+
+                var options = {
+
+                    "key": "rzp_test_HehTNX7pWaWjWE", // Replace with your Razorpay key ID
+                    "amount": 10000, // The amount in paise
+                    "currency": "INR",
+                    "order_id": data.id, // This is the Razorpay order ID
+                    "name": "Your Company Name",
+                    "description": "Test Payment",
+
+
+                    "handler": function(response) {
+                    console.log(response)
+                        // This is called on successful payment
+                        var payment_id = response.razorpay_payment_id;
+                        var order_id = response.razorpay_order_id;
+                        var signature = response.razorpay_signature;
+
+                        console.log(payment_id,order_id,signature)
+
+                        // Send payment details to the backend for verification
+                        fetch('/verify-payment', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/x-www-form-urlencoded'
+                            },
+                            body: `razorpay_payment_id=${payment_id}&razorpay_order_id=${order_id}&razorpay_signature=${signature}`
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.status === 'Payment successful') {
+                                //alert('Payment Successful!');
+                                 showCongratulations("Your order has been placed sucessfully!!!!");
+                                 sendordertomainscreen();
+                                 showWaitingMessage();
+
+
+
+                            } else {
+                                alert('Payment Verification Failed!');
+                            }
+                        });
+                    },
+                    "prefill": {
+                        "name": "John Doe",
+                        "email": "john.doe@example.com",
+                        "contact": "9999999999"
+                    },
+                    "theme": {
+                        "color": "#F37254"
+                    }
+                };
+
+                var rzp1 = new Razorpay(options);
+                rzp1.open();
+            });
+
+
+
+
+
+
+
+
+
+        let oldData = JSON.parse(localStorage.getItem(currentTable)) || {};
+
+
+        for (const [key, value] of Object.entries(orderList)) {
+
+          if (oldData[key]) {
+
+
+            oldData[key].quantity += value.quantity
+
+            }
+           else {
+            oldData[key] = value;  // Add the new item if it doesn't exist
+          }
+        }
+
+
+        localStorage.setItem(currentTable, JSON.stringify(oldData));
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            // Clear the order
+            totalAmount = 0;
+            for (const itemName in orderList) {
+                delete orderList[itemName];
+            }
+        
+		
+		   updateOrderSummary();
+            updateTotalPrice();
+
+           
+        }
+		
+function sendordertomainscreen(){
+
+
+// Get table name from URL parameter
+							function getTableName() {
+								const urlParams = new URLSearchParams(window.location.search);
+								return urlParams.get('table') || "default_table";  // Default to "default_table" if not provided
+							}
+
+							const currentTable = getTableName();
+							console.log("Table name from URL:", currentTable);
+
+							// Get data from localStorage or create a sample order object
+							const savedOrder = JSON.parse(localStorage.getItem(currentTable)) || {
+								items: [{ name: "Sample Item", quantity: 1, price: 10 }]
+							};
+
+							// Prepare data for the POST request
+							const data = {
+								table_name: currentTable,
+								order_data: savedOrder
+							};
+
+
+
+// Send data to the Flask app
+							fetch('/save_json', {
+								method: 'POST',
+								headers: {
+									'Content-Type': 'application/json'
+								},
+								body: JSON.stringify(data)  // Convert data to JSON string
+							})
+							.then(response => {
+								if (!response.ok) {
+									throw new Error(`HTTP error! Status: ${response.status}`);
+								}
+								return response.json();
+							})
+							.then(responseData => {
+								console.log("Server response:", responseData.message);
+							})
+							.catch(error => {
+								console.error("Error saving data:", error);
+							});
+
+}
+
+		
+function loadCategoriesAndItems() {
+
+    // Fetch the JSON data
+    fetch(`/data`)
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Network response was not ok ' + response.statusText);
+        }
+        return response.json();
+      })
+      .then(data => {
+        // Display the JSON data in the HTML
+       // document.getElementById('json-output').textContent = JSON.stringify(data, null, 2);
+	   
+	       // Validate that data is an array
+    if (Array.isArray(data)) {
+        // Get references to the HTML elements
+        let sidebar = document.querySelector(".sidebar ul");
+        let itemsGrid = document.querySelector(".items-grid");
+
+        // Clear previous content
+        sidebar.innerHTML = '';
+        itemsGrid.innerHTML = '';
+
+        // Use a Set to track unique categories
+        let uniqueCategories = new Set();
+
+        // Add "All" category to the sidebar by default
+        let allCategoryItem = document.createElement("li");
+        allCategoryItem.textContent = "All";
+        allCategoryItem.addEventListener('click', () => {
+            displayAllItems(data);
+        });
+        sidebar.appendChild(allCategoryItem);
+
+        // Loop through each item in the data
+        data.forEach(item => {
+            // Check if item is an object and has the expected properties
+            if (item && typeof item === 'object' && item.Menu && item.Submenu && typeof item.price === 'number') {
+                let { Menu: category, Submenu: submenu, price } = item;
+
+                // Check if the category is already in the Set
+                // Inside your loadCategoriesAndItems function
+					if (!uniqueCategories.has(category)) {
+						uniqueCategories.add(category);
+						
+						let categoryItem = document.createElement("li");
+						categoryItem.textContent = category;
+						categoryItem.addEventListener('click', () => {
+							filterItemsByCategory(category);  // Pass the category name
+						});
+						sidebar.appendChild(categoryItem);
+					}
+
+
+                // Create a div for the submenu in the items grid
+                let itemDiv = document.createElement("div");
+                itemDiv.classList.add('item');
+                itemDiv.setAttribute('data-category', category);
+                itemDiv.setAttribute('data-name', submenu);
+                itemDiv.setAttribute('data-price', price);
+                itemDiv.innerText = submenu;
+
+                // Add click event to the item
+                itemDiv.addEventListener('click', () => {
+                    addItemToOrder(submenu, price);
+                });
+                itemsGrid.appendChild(itemDiv);
+            } else {
+                console.warn("Invalid item structure:", item);
+            }
+        });
+    } else {
+        console.error("Data retrieved from localStorage is not an array");
+    }
+	   
+	   
+      })
+      .catch(error => {
+        document.getElementById('json-output').textContent = 'Error fetching data: ' + error;
+      });
+
+	
+
+
+
+
+
+
+
+}
+
+
+function displayAllItems(data) {
+    let itemsGrid = document.querySelector(".items-grid");
+	console.log("inside displayall")
+    // Clear the current items
+    itemsGrid.innerHTML = '';
+		
+
+    // Loop through all data, skipping the first row
+    data.slice(1).forEach(item => {
+
+            if (item && typeof item === 'object' && item.Menu && item.Submenu && typeof item.price === 'number') {
+                let { Menu: category, Submenu: submenu, price } = item;
+
+            // Create a div for the submenu in the items grid
+            let itemDiv = document.createElement("div");
+            itemDiv.classList.add('item');
+            itemDiv.setAttribute('data-category', category);
+            itemDiv.setAttribute('data-name', submenu);
+            itemDiv.setAttribute('data-price', price);
+            itemDiv.innerText = submenu;
+
+            // Add click event to the item
+            itemDiv.addEventListener('click', () => {
+                addItemToOrder(submenu, price);
+            });
+            itemsGrid.appendChild(itemDiv);
+        }
+    });
+}
+
+
+// Call loadCategoriesAndItems on page load
+loadCategoriesAndItems();
+
+
+
+function filterItemsByCategory(selectedCategory) {
+
+	console.log("selected cat ",selectedCategory)
+	if(selectedCategory == null){
+	
+	console.log("all selected")
+	}
+
+    // Retrieve data from localStorage
+    let data = JSON.parse(localStorage.getItem("uploadedData"));
+
+    // Get a reference to the items grid
+    let itemsGrid = document.querySelector(".items-grid");
+
+    // Clear previous items
+    itemsGrid.innerHTML = '';
+
+    // Filter items based on the selected category
+    const filteredItems = data.filter(item => item.Menu === selectedCategory);
+
+    // Loop through the filtered items and display them
+    filteredItems.forEach(item => {
+        let { Submenu: submenu, price } = item;
+
+        // Create a div for the submenu item
+        let itemDiv = document.createElement("div");
+        itemDiv.classList.add('item');
+        itemDiv.setAttribute('data-name', submenu);
+        itemDiv.setAttribute('data-price', price);
+        itemDiv.innerText = submenu;
+
+        // Add click event to the item
+        itemDiv.addEventListener('click', () => {
+            addItemToOrder(submenu, price);
+        });
+        itemsGrid.appendChild(itemDiv);
+    });
+
+    // Optionally, handle the case where no items are found
+    if (filteredItems.length === 0) {
+        let noItemsMessage = document.createElement("div");
+        noItemsMessage.innerText = "No items found for this category.";
+        itemsGrid.appendChild(noItemsMessage);
+    }
+	
+	
+	
+}
+
+
+
+	
+	function getAllLocalStorageItems() {
+	
+	
+	
+	
+	
+		// Retrieve the value from localStorage
+const table_name = localStorage.getItem('currentTable');
+
+// table_name now holds the value 'Outdoor_table_1'
+console.log(table_name);  // Outputs: Outdoor_table_1
+	
+	fetch(`/order?table_no=${table_name}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok ' + response.statusText);
+                    }
+                    return response.json();
+					
+                })
+                .then(data => {
+				
+					console.log(data); // Log the data to see its structure
+					
+					localStorage.setItem(currentTable, data);
+				
+                    // Parse the JSON string into an array
+                    const menuData = JSON.parse(data);
+					})
+	
+	
+	
+	
+	
+	
+	
+    const length = localStorage.length; // Get the number of items in localStorage
+    console.log("Total items in localStorage:", length);
+	
+	
+		
+		
+	
+	let length1=0
+    for (let i = 0; i < length; i++) {
+        const key = localStorage.key(i); // Get the key at index i
+        const value = localStorage.getItem(key); // Get the value associated with the key
+		
+		
+		
+				try {
+				// Try parsing the value as JSON
+				const parsedValue = JSON.parse(value);
+				// If it's an array or an object, get the length of its keys
+				if (Array.isArray(parsedValue)) {
+					length1 = parsedValue.length;
+				} else if (typeof parsedValue === 'object' && parsedValue !== null) {
+					length1 = Object.keys(parsedValue).length;
+				} else {
+					// If it's not a JSON object/array, use the string length
+					length1 = value.length;
+				}
+			} catch (e) {
+				// If parsing fails, use the string length
+				length1 = value.length;
+			}
+				
+				console.log(`Key: ${key}, Value: ${value}, Length: ${length1}`);
+				
+				try{
+				const section = document.querySelector(`.table-grid[data-section="${key}"]`);
+				section.innerHTML = '';
+
+				for (let j = 0; j < length1+5; j++){
+				
+						
+				const newTable = document.createElement('div');
+					newTable.className = 'table-item';
+					newTable.innerText = j+1;
+					newTable.onclick = function() { openPopup(this, key); };
+					section.appendChild(newTable);
+				}
+				}catch{
+				}
+		
+	}
+}
+
+// Call the function to see the output
+getAllLocalStorageItems();
+
+
+ // Function to create and download JSON file
+ function downloadJSON(data, filename) {
+      const jsonString = JSON.stringify(data, null, 2); // Convert data to JSON string
+      const blob = new Blob([jsonString], { type: 'application/json' }); // Create a Blob object
+      const url = URL.createObjectURL(blob); // Create a URL for the Blob
+      const a = document.createElement('a'); // Create an anchor element
+      a.href = url; // Set the URL as the href
+      a.download = filename; // Set the download attribute with the file name
+      document.body.appendChild(a); // Append the anchor to the document
+      a.click(); // Programmatically click the anchor to trigger the download
+      document.body.removeChild(a); // Remove the anchor from the document
+      URL.revokeObjectURL(url); // Release the Blob URL
+    }
+
+		
+
+    </script>
+	
+	
+	
+</body>
+</html>

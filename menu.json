@@ -1,0 +1,17 @@
+[
+  {
+    "Menu": "main course",
+    "Submenu": "chapati",
+    "price": 1
+  },
+  {
+    "Menu": "Deesert",
+    "Submenu": "ice cream'",
+    "price": 2
+  },
+  {
+    "Menu": "beverage",
+    "Submenu": "coco-cola",
+    "price": 3
+  }
+]

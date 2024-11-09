@@ -1,0 +1,1032 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Restaurant Management Interface</title>
+    <style>
+        /* Basic styling */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            background-color: #f5f5f5;
+        }
+        /* Title bar styling */
+        .title-bar {
+            background-color: #444;
+            color: white;
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .title-bar .app-title {
+            font-size: 18px;
+        }
+        .title-bar .menu-icons {
+            display: flex;
+            gap: 10px;
+        }
+        .menu-icons i {
+            font-size: 20px;
+            cursor: pointer;
+        }
+        .search-bar {
+            flex: 1;
+            margin: 0 20px;
+            position: relative;
+        }
+        .search-bar input {
+            width: 100%;
+            padding: 5px 10px;
+            font-size: 16px;
+            border-radius: 5px;
+            border: none;
+        }
+        .search-results {
+            position: absolute;
+            top: 35px;
+            left: 0;
+            right: 0;
+            background-color: white;
+            border: 1px solid #ccc;
+            z-index: 1000;
+            display: none;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .search-results div {
+            padding: 10px;
+            cursor: pointer;
+            background-color: #f0f0f0; /* Light grey background */
+            color: #444;
+        }
+        .search-results div:hover {
+            background-color: #d9534f; /* Highlight color on hover */
+            color: white;
+        }
+        .search-results div.highlighted {
+            background-color: #ffcc00; /* Yellow background for better visibility */
+            color: black;
+        }
+        /* Menu bar styling */
+        .menu-bar {
+            background-color: #e0e0e0;
+            padding: 10px 20px;
+            display: flex;
+            gap: 20px;
+            border-bottom: 1px solid #ccc;
+        }
+        .menu-bar .menu-item {
+            cursor: pointer;
+            padding: 5px 10px;
+            border-radius: 5px;
+        }
+        .menu-bar .menu-item.active {
+            background-color: #d9534f;
+            color: white;
+        }
+        /* Main layout */
+        .content {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+        .sidebar {
+            width: 200px;
+            background-color: #f8f9fa;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        .sidebar h2 {
+            font-size: 18px;
+            margin-top: 0;
+        }
+        .sidebar ul {
+            list-style: none;
+            padding: 0;
+        }
+        .sidebar li {
+            margin-bottom: 10px;
+            cursor: pointer;
+            padding: 5px;
+            border-radius: 5px;
+        }
+        .sidebar li:hover, .sidebar li.active {
+            background-color: #d9534f;
+            color: white;
+        }
+        .main-content {
+            flex: 1;
+            padding: 20px;
+            background-color: #fff;
+            overflow-y: auto;
+        }
+        .main-content .items-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+        }
+        .item {
+            border: 1px solid #ccc;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            background-color: #f9f9f9;
+            border-radius: 5px;
+        }
+        .item:hover {
+            background-color: #f0ad4e;
+        }
+        /* Order Summary */
+        .order-summary {
+            width: 300px;
+            background-color: #f7f7f7;
+            padding: 20px;
+            border-left: 1px solid #ccc;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            position: relative; /* Position relative for absolute children */
+        }
+        .order-summary h2 {
+            font-size: 18px;
+            margin-top: 0;
+        }
+        #order-items {
+            flex: 1; /* Grow to fill available space */
+            overflow-y: auto; /* Scrollable */
+        }
+        .order-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .order-item span {
+            flex: 1;
+        }
+        .quantity-controls {
+            display: flex;
+            align-items: center;
+        }
+        .quantity-controls button {
+            background-color: #d9534f;
+            color: white;
+            border: none;
+            cursor: pointer;
+            padding: 3px 8px;
+            border-radius: 3px;
+            margin: 0 5px;
+        }
+        .footer {
+            background-color: #444;
+            color: white;
+            padding: 10px;
+            text-align: center;
+            position: fixed;
+            bottom: 0;
+            width: 300px;
+        }
+
+        /* Styles for the Settle & Print Bill button */
+        .settle-print-btn {
+            background-color: red; /* Green color */
+            color: white;
+            border: none;
+            padding: 30px 10px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 20px;
+			margin-bottom: 30px;
+            width: 100%;
+
+            border-radius: 10px;
+        }
+
+        .settle-print-btn:hover {
+            background-color:green; /* Darker green on hover */
+        }
+
+        .print-btn {
+            background-color: #d9534f; /* Red color */
+            color: white;
+            border: none;
+            padding: 5px 15px;
+            font-size: 16px;
+            cursor: pointer;
+            border-radius: 5px;
+            margin-left: auto; /* Pushes the button to the right end */
+        }
+
+        .print-btn:hover {
+            background-color: #c9302c; /* Darker red on hover */
+        }
+
+
+		#total-price {
+    border: 1px solid #ccc; /* Light grey border */
+    padding: 10px; /* Padding for spacing */
+    margin-top: 10px; /* Space above the total price */
+    background-color: #fff; /* White background for contrast */
+    border-radius: 5px; /* Rounded corners */
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Subtle shadow for depth */
+    transition: background-color 0.3s ease, transform 0.3s ease; /* Transition for background and transform */
+}
+
+/* Add hover effect */
+#total-price:hover {
+    background-color: #f0f0f0; /* Light grey background on hover */
+    transform: scale(1.02); /* Slightly enlarge on hover */
+}
+   /* Popup styling */
+        .popup {
+            display: none; /* Hidden by default */
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: white;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            z-index: 1001; /* Make sure it appears above other content */
+            animation: popup-animation 0.5s forwards, celebration-animation 0.5s forwards; /* Popup and celebration animation */
+        }
+        .popup-content {
+            padding: 20px;
+            text-align: center;
+        }
+        .popup h3 {
+            margin: 0;
+            color: #d9534f; /* Color for title */
+        }
+        .popup p {
+            margin: 10px 0 20px;
+        }
+        /* Button styling */
+        #close-popup {
+            background-color: #d9534f; /* Button color */
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        #close-popup:hover {
+            background-color: #c9302c; /* Darker shade on hover */
+        }
+        /* Popup animation keyframes */
+        @keyframes popup-animation {
+            from {
+                opacity: 0;
+                transform: translate(-50%, -60%);
+            }
+            to {
+                opacity: 1;
+                transform: translate(-50%, -50%);
+            }
+        }
+        /* Celebration animation keyframes */
+        @keyframes celebration-animation {
+            0% {
+                transform: translate(-50%, -50%) scale(1);
+            }
+            50% {
+                transform: translate(-50%, -50%) scale(1.1) rotate(5deg);
+            }
+            100% {
+                transform: translate(-50%, -50%) scale(1);
+            }
+        }
+
+		 /* Print styles */
+        @media print {
+            body * {
+                visibility: hidden; /* Hide everything */
+            }
+            #order-summary, #order-summary * {
+                visibility: visible; /* Show only the order summary */
+            }
+            #order-summary {
+                position: absolute; /* Prevent layout issues */
+                left: 0;
+                top: 0;
+            }
+        }
+
+
+    </style>
+</head>
+
+
+<body>
+
+    <!-- Title Bar -->
+    <div class="title-bar">
+        <div class="app-title">Restaurant Management Software</div>
+        <div class="search-bar">
+            <input type="text" placeholder="Search items..." id="search-input">
+            <div class="search-results" id="search-results"></div>
+        </div>
+
+    </div>
+
+    <!-- Menu Bar -->
+    <div class="menu-bar">
+        <div class="menu-item active">Dine In</div>
+        <div class="menu-item">Delivery</div>
+        <div class="menu-item">Pick Up</div>
+        <button class="print-btn" onclick="closeWindow()">Back</button>
+    </div>
+
+    <!-- Main Content Layout -->
+    <div class="content">
+        <div class="sidebar">
+            <h2>Categories</h2>
+            <ul>
+
+            </ul>
+        </div>
+
+        <div class="main-content">
+            <h2>Items</h2>
+            <div class="items-grid">
+
+            </div>
+        </div>
+
+        <!-- Order Summary -->
+        <div class="order-summary" id ="order-summary">
+            <h2>Order Summary</h2>
+            <div id="order-items"></div>
+            <div id="total-price">Total: ₹0.00</div>
+            <button class="settle-print-btn"  onclick="printBill()">Print& Settle</button>
+        </div>
+    </div>
+
+
+
+<!-- Congratulations Popup -->
+    <div id="congratulations-popup" class="popup">
+        <div class="popup-content">
+            <h3>Congratulations!</h3>
+            <p>Your order has been settled successfully.</p>
+            <button id="close-popup">Close</button>
+        </div>
+    </div>
+
+    <script>
+
+
+
+
+
+	function closeWindow() {
+            window.close();
+        }
+
+
+        const items = document.querySelectorAll('.item');
+        const orderItems = document.getElementById('order-items');
+        const totalPriceEl = document.getElementById('total-price');
+        const categoryLinks = document.querySelectorAll('.sidebar li');
+        const searchInput = document.getElementById('search-input');
+        const searchResults = document.getElementById('search-results');
+        let totalAmount = 0;
+        const orderList = {};
+
+        const currentTable = localStorage.getItem('currentTable');
+
+
+
+function loadOrder() {
+    const savedOrder = JSON.parse(localStorage.getItem(currentTable));
+    if (savedOrder) {
+        // Load items for the current table
+        for (const itemName in savedOrder) {
+            const itemDetails = savedOrder[itemName];
+            for (let i = 0; i < itemDetails.quantity; i++) {
+                addItemToOrder(itemDetails.name, itemDetails.price);
+            }
+        }
+    }
+}
+
+
+
+
+function saveOrder() {
+
+	try{
+    localStorage.setItem(currentTable, JSON.stringify(orderList));
+	}
+	catch{
+
+
+
+	}
+	// Trigger download of the JSON file
+      const filename = `${currentTable}.json`;
+    //downloadJSON(orderList, filename);
+}
+
+
+        // Call loadOrder on page load
+        loadOrder();
+
+        items.forEach(item => {
+            item.addEventListener('click', () => {
+                const itemName = item.getAttribute('data-name');
+                const itemPrice = parseFloat(item.getAttribute('data-price'));
+
+                // Add item to the order
+                addItemToOrder(itemName, itemPrice);
+            });
+        });
+
+        function addItemToOrder(itemName, itemPrice) {
+            if (!orderList[itemName]) {
+                orderList[itemName] = { name: itemName, price: itemPrice, quantity: 1 };
+            } else {
+                orderList[itemName].quantity += 1;
+            }
+            totalAmount += itemPrice;
+            updateOrderSummary();
+            updateTotalPrice();
+            saveOrder();  // Save order to localStorage
+        }
+
+
+		 // Refresh the page every 1 second
+
+
+        function updateOrderSummary() {
+            orderItems.innerHTML = '';
+            for (const [itemName, itemDetails] of Object.entries(orderList)) {
+                orderItems.innerHTML += `
+                    <div class="order-item">
+                        <span>${itemDetails.name}</span>
+                        <div class="quantity-controls">
+                            <button onclick="decreaseQuantity('${itemName}')">-</button>
+                            <span>${itemDetails.quantity}</span>
+                            <button onclick="increaseQuantity('${itemName}')">+</button>
+                        </div>
+                        <span>₹${(itemDetails.price * itemDetails.quantity).toFixed(2)}</span>
+                    </div>
+                `;
+            }
+        }
+
+        function increaseQuantity(itemName) {
+            orderList[itemName].quantity += 1;
+            totalAmount += orderList[itemName].price;
+            updateOrderSummary();
+            updateTotalPrice();
+            saveOrder();  // Save order to localStorage
+        }
+
+        function decreaseQuantity(itemName) {
+            if (orderList[itemName].quantity > 1) {
+                orderList[itemName].quantity -= 1;
+                totalAmount -= orderList[itemName].price;
+            } else {
+                totalAmount -= orderList[itemName].price;
+                delete orderList[itemName];
+            }
+            updateOrderSummary();
+            updateTotalPrice();
+            saveOrder();  // Save order to localStorage
+        }
+
+        function updateTotalPrice() {
+            totalPriceEl.innerText = `Total: ₹${totalAmount.toFixed(2)}`;
+        }
+
+
+
+        // Filtering items based on category
+        categoryLinks.forEach(link => {
+            link.addEventListener('click', () => {
+                const category = link.getAttribute('data-category');
+                categoryLinks.forEach(l => l.classList.remove('active'));
+                link.classList.add('active');
+                items.forEach(item => {
+                    if (category === 'all' || item.getAttribute('data-category') === category) {
+                        item.style.display = 'block';
+                    } else {
+                        item.style.display = 'none';
+                    }
+                });
+            });
+        });
+
+        // Search functionality
+        searchInput.addEventListener('input', () => {
+            const searchTerm = searchInput.value.toLowerCase();
+            if (searchTerm) {
+                searchResults.style.display = 'block';
+                searchResults.innerHTML = '';
+                items.forEach(item => {
+                    const itemName = item.getAttribute('data-name').toLowerCase();
+                    if (itemName.includes(searchTerm)) {
+                        const itemDiv = document.createElement('div');
+                        itemDiv.innerText = item.getAttribute('data-name');
+                        itemDiv.onclick = () => {
+                            addItemToOrder(item.getAttribute('data-name'), parseFloat(item.getAttribute('data-price')));
+                            searchResults.style.display = 'none';
+                            searchInput.value = '';
+                        };
+                        searchResults.appendChild(itemDiv);
+                    }
+                });
+            } else {
+                searchResults.style.display = 'none';
+            }
+        });
+
+
+			// Function to show the congratulatory popup
+function showCongratulations() {
+    const popup = document.getElementById('congratulations-popup');
+    popup.style.display = 'block';
+}
+
+// Event listener for the Settle & Print button
+document.querySelector('.settle-print-btn').addEventListener('click', () => {
+    showCongratulations();
+});
+
+// Event listener to close the popup
+document.getElementById('close-popup').addEventListener('click', () => {
+    const popup = document.getElementById('congratulations-popup');
+    popup.style.display = 'none';
+});
+
+// Hide the popup when clicking outside of it
+window.onclick = function(event) {
+    const popup = document.getElementById('congratulations-popup');
+    if (event.target === popup) {
+        popup.style.display = 'none';
+    }
+};
+
+
+
+
+
+
+        // Hide search results when clicking outside
+        document.addEventListener('click', (event) => {
+            if (!searchInput.contains(event.target) && !searchResults.contains(event.target)) {
+                searchResults.style.display = 'none';
+            }
+        });
+
+        // Function to handle bill printing
+        function printBill() {
+
+
+			filename=currentTable
+
+			//delete order file
+
+			 fetch(`/delete?filename=${filename}`, {
+                method: 'DELETE'
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('message').innerText = data.message || data.error;
+            })
+            .catch(error => {
+                document.getElementById('message').innerText = 'An error occurred: ' + error.message;
+            });
+
+
+
+			const orderSummaryElement = document.getElementById('order-summary');
+
+            if (!orderSummaryElement) {
+                console.error("Order summary element not found!");
+                return;
+            }
+
+             // Create a temporary container to manipulate the HTML
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = orderSummaryElement.innerHTML;
+
+            // Remove button elements
+            const buttons = tempDiv.querySelectorAll('button');
+            buttons.forEach(button => button.remove());
+
+			console.log(tempDiv.innerHTML)
+
+
+		const printWindow = window.open('', '_blank');
+            printWindow.document.write(`
+                <html lang="en">
+						<head>
+							<meta charset="UTF-8">
+							<meta name="viewport" content="width=device-width, initial-scale=1.0">
+							<title>Receipt</title>
+							<style>
+								body {
+									font-family: Arial, sans-serif;
+									margin: 0;
+									padding: 20px;
+									background-color: #f9f9f9;
+									color: #333;
+								}
+								.container {
+									max-width: 600px;
+									margin: auto;
+									background: #fff;
+									padding: 20px;
+									border: 2px solid #007BFF; /* Attractive border color */
+									box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2); /* Enhanced shadow */
+									border-top-left-radius: 8px; /* Rounded top left corner */
+									border-top-right-radius: 8px; /* Rounded top right corner */
+									border-bottom-left-radius: 20px; /* More rounded bottom left corner */
+									border-bottom-right-radius: 20px; /* More rounded bottom right corner */
+								}
+								h1 {
+									text-align: center;
+									color: #007BFF;
+								}
+								.header, .footer {
+									text-align: center;
+									margin-bottom: 20px;
+								}
+								.header img {
+									max-width: 150px;
+								}
+								.info {
+									text-align: center;
+									margin-bottom: 20px;
+									border-bottom: 1px solid #ddd; /* Border under info section */
+									padding-bottom: 10px;
+								}
+								.item {
+									display: flex;
+									justify-content: space-between;
+									border-bottom: 1px solid #ddd;
+									padding: 10px 0;
+								}
+								.item:last-child {
+									border-bottom: none;
+								}
+								.total {
+									font-weight: bold;
+									font-size: 1.2em;
+									margin-top: 20px;
+								}
+								.footer {
+									font-size: 0.9em;
+									color: #666;
+								}
+                        </style>
+                    </head>
+                    <body>
+
+						<div class="container">
+							<div class="header">
+								<img src="logo.png" alt="Restaurant Logo">
+								<h1>Restaurant Name</h1>
+							</div>
+
+							<div class="info">
+								<p><strong>Date:</strong> October 27, 2024</p>
+								<p><strong>Time:</strong> 7:00 PM</p>
+								<p><strong>Table No:</strong> 5</p>
+							</div>
+
+                           <div class="items">
+							<div class="item">
+                            <h1>Receipt</h1>
+                            ${tempDiv.innerHTML}
+							 <div class="footer">
+						<p>Thank you for dining with us!</p>
+
+						</div>
+
+                        </div>
+                    </body>
+                </html>
+            `);
+            printWindow.document.close();
+            printWindow.print();
+			printWindow.close();
+
+
+
+
+            // Clear the order
+            totalAmount = 0;
+            for (const itemName in orderList) {
+                delete orderList[itemName];
+            }
+            updateOrderSummary();
+            updateTotalPrice();
+            saveOrder(); // Clear saved order from localStorage
+        }
+
+
+
+
+         function fetchData() {
+            try {
+				console.log("fetching data")
+                const response = fetch('/data'); // Fetch the JSON data from Flask
+                const data = response.json();
+				
+				console.log("data from excel",data)
+				
+				return data
+
+               
+            } catch (error) {
+                console.error('Error fetching JSON data:', error);
+            }
+        }
+
+
+
+function loadCategoriesAndItems() {
+
+
+	fetch(`/data`, {
+                method: 'GET'
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log("data from json",data)
+				
+				if (Array.isArray(data)) {
+        // Get references to the HTML elements
+        let sidebar = document.querySelector(".sidebar ul");
+        let itemsGrid = document.querySelector(".items-grid");
+
+        // Clear previous content
+        sidebar.innerHTML = '';
+        itemsGrid.innerHTML = '';
+
+        // Use a Set to track unique categories
+        let uniqueCategories = new Set();
+
+        // Add "All" category to the sidebar by default
+        let allCategoryItem = document.createElement("li");
+        allCategoryItem.textContent = "All";
+        allCategoryItem.addEventListener('click', () => {
+            displayAllItems(data);
+        });
+        sidebar.appendChild(allCategoryItem);
+
+        // Loop through each item in the data
+        data.forEach(item => {
+            // Check if item is an object and has the expected properties
+            if (item && typeof item === 'object' && item.Menu && item.Submenu && typeof item.price === 'number') {
+                let { Menu: category, Submenu: submenu, price } = item;
+
+                // Check if the category is already in the Set
+                // Inside your loadCategoriesAndItems function
+					if (!uniqueCategories.has(category)) {
+						uniqueCategories.add(category);
+
+						let categoryItem = document.createElement("li");
+						categoryItem.textContent = category;
+						categoryItem.addEventListener('click', () => {
+							filterItemsByCategory(category);  // Pass the category name
+						});
+						sidebar.appendChild(categoryItem);
+					}
+
+
+                // Create a div for the submenu in the items grid
+                let itemDiv = document.createElement("div");
+                itemDiv.classList.add('item');
+                itemDiv.setAttribute('data-category', category);
+                itemDiv.setAttribute('data-name', submenu);
+                itemDiv.setAttribute('data-price', price);
+                itemDiv.innerText = submenu;
+
+                // Add click event to the item
+                itemDiv.addEventListener('click', () => {
+                    addItemToOrder(submenu, price);
+                });
+                itemsGrid.appendChild(itemDiv);
+            } else {
+                console.warn("Invalid item structure:", item);
+            }
+        });
+    } else {
+        console.error("Data retrieved from localStorage is not an array");
+    }
+				
+				
+				
+            })
+            .catch(error => {
+                document.getElementById('message').innerText = 'An error occurred: ' + error.message;
+            });	
+
+
+	 //let data = JSON.parse(fetchData());
+
+    // Retrieve data from localStorage
+    //let data = JSON.parse(localStorage.getItem("uploadedData"));
+	
+	
+    //console.log("Retrieved Data:", data);
+
+    // Validate that data is an array
+    
+}
+
+
+function displayAllItems(data) {
+    let itemsGrid = document.querySelector(".items-grid");
+	console.log("inside displayall")
+    // Clear the current items
+    itemsGrid.innerHTML = '';
+
+
+    // Loop through all data, skipping the first row
+    data.slice(1).forEach(item => {
+
+            if (item && typeof item === 'object' && item.Menu && item.Submenu && typeof item.price === 'number') {
+                let { Menu: category, Submenu: submenu, price } = item;
+
+            // Create a div for the submenu in the items grid
+            let itemDiv = document.createElement("div");
+            itemDiv.classList.add('item');
+            itemDiv.setAttribute('data-category', category);
+            itemDiv.setAttribute('data-name', submenu);
+            itemDiv.setAttribute('data-price', price);
+            itemDiv.innerText = submenu;
+
+            // Add click event to the item
+            itemDiv.addEventListener('click', () => {
+                addItemToOrder(submenu, price);
+            });
+            itemsGrid.appendChild(itemDiv);
+        }
+    });
+}
+
+
+// Call loadCategoriesAndItems on page load
+loadCategoriesAndItems();
+
+
+
+function filterItemsByCategory(selectedCategory) {
+
+	console.log("selected cat ",selectedCategory)
+	if(selectedCategory == null){
+
+	console.log("all selected")
+	}
+
+    // Retrieve data from localStorage
+    let data = JSON.parse(localStorage.getItem("uploadedData"));
+
+    // Get a reference to the items grid
+    let itemsGrid = document.querySelector(".items-grid");
+
+    // Clear previous items
+    itemsGrid.innerHTML = '';
+
+    // Filter items based on the selected category
+    const filteredItems = data.filter(item => item.Menu === selectedCategory);
+
+    // Loop through the filtered items and display them
+    filteredItems.forEach(item => {
+        let { Submenu: submenu, price } = item;
+
+        // Create a div for the submenu item
+        let itemDiv = document.createElement("div");
+        itemDiv.classList.add('item');
+        itemDiv.setAttribute('data-name', submenu);
+        itemDiv.setAttribute('data-price', price);
+        itemDiv.innerText = submenu;
+
+        // Add click event to the item
+        itemDiv.addEventListener('click', () => {
+            addItemToOrder(submenu, price);
+        });
+        itemsGrid.appendChild(itemDiv);
+    });
+
+    // Optionally, handle the case where no items are found
+    if (filteredItems.length === 0) {
+        let noItemsMessage = document.createElement("div");
+        noItemsMessage.innerText = "No items found for this category.";
+        itemsGrid.appendChild(noItemsMessage);
+    }
+
+
+
+}
+
+
+
+
+	function getAllLocalStorageItems() {
+
+
+
+		//read json file and store in localStorage
+		
+		
+
+
+
+
+
+
+
+    const length = localStorage.length; // Get the number of items in localStorage
+    console.log("Total items in localStorage:", length);
+
+
+
+
+
+	let length1=0
+    for (let i = 0; i < length; i++) {
+        const key = localStorage.key(i); // Get the key at index i
+        const value = localStorage.getItem(key); // Get the value associated with the key
+
+
+
+				try {
+				// Try parsing the value as JSON
+				const parsedValue = JSON.parse(value);
+				// If it's an array or an object, get the length of its keys
+				if (Array.isArray(parsedValue)) {
+					length1 = parsedValue.length;
+				} else if (typeof parsedValue === 'object' && parsedValue !== null) {
+					length1 = Object.keys(parsedValue).length;
+				} else {
+					// If it's not a JSON object/array, use the string length
+					length1 = value.length;
+				}
+			} catch (e) {
+				// If parsing fails, use the string length
+				length1 = value.length;
+			}
+
+				console.log(`Key: ${key}, Value: ${value}, Length: ${length1}`);
+
+				try{
+				const section = document.querySelector(`.table-grid[data-section="${key}"]`);
+				section.innerHTML = '';
+
+				for (let j = 0; j < length1+5; j++){
+
+
+				const newTable = document.createElement('div');
+					newTable.className = 'table-item';
+					newTable.innerText = j+1;
+					newTable.onclick = function() { openPopup(this, key); };
+					section.appendChild(newTable);
+				}
+				}catch{
+				}
+
+	}
+}
+
+// Call the function to see the output
+getAllLocalStorageItems();
+
+
+ // Function to create and download JSON file
+ function downloadJSON(data, filename) {
+      const jsonString = JSON.stringify(data, null, 2); // Convert data to JSON string
+      const blob = new Blob([jsonString], { type: 'application/json' }); // Create a Blob object
+      const url = URL.createObjectURL(blob); // Create a URL for the Blob
+      const a = document.createElement('a'); // Create an anchor element
+      a.href = url; // Set the URL as the href
+      a.download = filename; // Set the download attribute with the file name
+      document.body.appendChild(a); // Append the anchor to the document
+      a.click(); // Programmatically click the anchor to trigger the download
+      document.body.removeChild(a); // Remove the anchor from the document
+      URL.revokeObjectURL(url); // Release the Blob URL
+    }
+
+
+
+
+
+
+
+    </script>
+
+
+
+</body>
+</html>
